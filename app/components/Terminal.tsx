@@ -128,16 +128,18 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
 
   return (
     <div className="relative h-full w-full">
-      {onClose && showCloseHint && (
+      {onClose && (
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-16 left-[22px] -translate-x-1/2 opacity-60"
+          className={`pointer-events-none absolute -top-8 left-[14px] transition-opacity duration-500 ${
+            showCloseHint ? "opacity-60" : "opacity-0"
+          }`}
         >
-          <div className="animate-bob flex flex-col items-center gap-1">
-            <span className="whitespace-nowrap rounded-full border border-line bg-panel px-2.5 py-1 font-mono text-[11px] text-paper shadow-[0_8px_20px_-8px_rgba(0,0,0,0.35)]">
+          <div className="animate-bob flex flex-row items-center gap-1.5">
+            <ChevronDownIcon className="h-4 w-4 shrink-0 text-signal" />
+            <span className="whitespace-nowrap font-mono text-[11px] text-paper">
               Close for Base View
             </span>
-            <ChevronDownIcon className="h-4 w-4 text-signal" />
           </div>
         </div>
       )}
