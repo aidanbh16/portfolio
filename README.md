@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# aidanholton.dev
 
-## Getting Started
+Aidan Holton's portfolio — built as two views of the same content.
 
-First, run the development server:
+- **Dev View** — a real interactive terminal (desktop only). Type `help` to
+  see what it can do: `about`, `experience`, `projects`, `skills`, `contact`,
+  `resume`, and a few extras (`sudo`, `whoami`, `date`). Commands support
+  piping into grep, e.g. `experience | grep python`.
+- **Base View** — a standard scrolling portfolio page. This is the only view
+  shown on mobile, and it's reachable from Dev View by clicking the close
+  (×) dot on the terminal's titlebar; from Base View, the "Dev View" button
+  in the header brings the terminal back.
+
+Both views render from the same data and are built with Next.js (App
+Router), React, TypeScript, and Tailwind CSS.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Editing content
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+All real content — name, bio, experience, projects, skills, links — lives
+in **`app/data.ts`**. Both views read from it, so an edit there shows up
+everywhere. Keep entries short: Dev View is a fixed-size terminal window and
+Base View clips long text with `line-clamp` in a few places, so there's no
+scrollback for anything absurdly long.
 
-## Learn More
+The résumé PDF served from the "Resume" links is `public/resume.pdf` —
+replace that file to update it.
 
-To learn more about Next.js, take a look at the following resources:
+## Project structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  data.ts                  # single source of truth for all content
+  layout.tsx                # metadata, fonts
+  page.tsx                  # renders PortfolioClient
+  globals.css                # color tokens (dark terminal theme + light
+                              # theme-light scope for Base View), animations
+  components/
+    PortfolioClient.tsx      # top-level switch: Dev View vs Base View,
+                              # forces Base View on mobile
+    DevView.tsx               # centers the Terminal on screen
+    Terminal.tsx               # terminal window: input, history, titlebar
+    terminalCommands.tsx      # command implementations + output formatting
+    BaseView.tsx               # standard portfolio page
+    Reveal.tsx                 # scroll-triggered fade-in used in Base View
+    icons.tsx                   # small inline SVG icons
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is a standard Next.js app — the [Vercel Platform](https://vercel.com/new)
+is the easiest way to deploy it. Run `npm run build` locally first if you
+want to sanity-check the production build before pushing.
