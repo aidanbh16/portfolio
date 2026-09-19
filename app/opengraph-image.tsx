@@ -4,7 +4,7 @@ import { ImageResponse } from "next/og";
 import { profile, siteUrl } from "./data";
 
 // The link preview shown when the site is shared (LinkedIn, Slack, iMessage…).
-// Same charcoal, cream, and orange as the site.
+// Same charcoal, cream, and blue as the site.
 
 export const alt = `${profile.name} — ${profile.role}`;
 export const size = { width: 1200, height: 630 };
@@ -49,7 +49,7 @@ export default async function OpenGraphImage() {
             fontSize: 28,
           }}
         >
-          <span style={{ color: "#e8875c", fontWeight: 600 }}>{siteUrl.replace(/^https?:\/\//, "")}</span>
+          <span style={{ color: "#7aa7f5", fontWeight: 600 }}>{siteUrl.replace(/^https?:\/\//, "")}</span>
           <span style={{ color: "#a19a8d" }}>{profile.available ? "Open to new roles" : profile.role}</span>
         </div>
       </div>

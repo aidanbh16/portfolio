@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* Site palette: warm charcoal, cream text, one soft orange accent. Dark
-   only, on purpose. Orange is used for text and small marks only — never as
+/* Site palette: warm charcoal, cream text, one soft blue accent. Dark
+   only, on purpose. Blue is used for text and small marks only — never as
    a filled block behind dark text. Token names are historical — --ink is
    the page background and --paper is the text color — so every bg-ink /
    text-paper utility follows the theme. */
@@ -12,10 +12,10 @@
   --line: #34312b;
   --mist: #a19a8d;
   --paper: #ece7dc;
-  --signal: #e8875c;
+  --signal: #7aa7f5;
   --amber: #d9a441;
-  --add: #e8875c;
-  --add-bg: rgb(232 135 92 / 0.1);
+  --add: #7aa7f5;
+  --add-bg: rgb(122 167 245 / 0.1);
   --del: #ff9a91;
   --del-bg: rgb(248 81 73 / 0.16);
 }

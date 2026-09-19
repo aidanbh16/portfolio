@@ -3,7 +3,7 @@
 Aidan Holton's portfolio — built as two views of the same content.
 
 - **Base View** — a clean, recruiter-friendly scrolling page (warm dark
-  charcoal, soft orange accent). Each role leads with its headline results, then the details.
+  charcoal, soft blue accent). Each role leads with its headline results, then the details.
   This is what everyone lands on, and the only view on mobile.
 - **Dev View** — a real interactive terminal (desktop only), opened from the
   "Terminal" button in Base View's header or the link under the hero. Type
@@ -48,7 +48,7 @@ app/
   data.ts                  # single source of truth for all content
   layout.tsx                # metadata, fonts (IBM Plex Sans + Mono)
   page.tsx                  # renders PortfolioClient + JSON-LD Person data
-  globals.css                # color tokens (dark-only charcoal/orange
+  globals.css                # color tokens (dark-only charcoal/blue
                               # site theme; terminal keeps its own teal
                               # palette), animations
   opengraph-image.tsx        # link-preview image, rendered at build time
