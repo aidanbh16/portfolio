@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { profile } from "../data";
 import { COMMAND_NAMES, runCommand } from "./terminalCommands";
-import { ChevronDownIcon } from "./icons";
 
 type Block = { id: number; prompt: string | null; content: ReactNode };
 
@@ -29,6 +28,14 @@ function useClock() {
 
 let blockId = 0;
 
+function commonPrefix(words: string[]): string {
+  let prefix = words[0];
+  for (const word of words) {
+    while (!word.startsWith(prefix)) prefix = prefix.slice(0, -1);
+  }
+  return prefix;
+}
+
 function initialHistory(): Block[] {
   return [
     {
@@ -37,7 +44,9 @@ function initialHistory(): Block[] {
       content: (
         <div>
           <div className="text-paper">Welcome to aidan@portfolio.</div>
-          <div className="text-mist">Type &apos;help&apos; to see available commands.</div>
+          <div className="text-mist">
+            Type &apos;help&apos; to see available commands, or &apos;exit&apos; to go back.
+          </div>
         </div>
       ),
     },
@@ -50,7 +59,6 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
   const [commandLog, setCommandLog] = useState<string[]>([]);
   const [logIndex, setLogIndex] = useState<number | null>(null);
   const [copiedFlash, setCopiedFlash] = useState(false);
-  const [showCloseHint, setShowCloseHint] = useState(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const outputRef = useRef<HTMLDivElement>(null);
@@ -62,11 +70,6 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
   }, [history]);
-
-  useEffect(() => {
-    const id = setTimeout(() => setShowCloseHint(false), 4500);
-    return () => clearTimeout(id);
-  }, []);
 
   const copyEmail = useMemo(
     () => async () => {
@@ -90,6 +93,10 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
 
     if (result.kind === "clear") {
       setHistory([]);
+      return;
+    }
+    if (result.kind === "exit") {
+      onClose?.();
       return;
     }
 
@@ -119,7 +126,16 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
       const word = input.toLowerCase();
       if (!word) return;
       const matches = COMMAND_NAMES.filter((c) => c.startsWith(word));
-      if (matches.length === 1) setInput(matches[0]);
+      if (matches.length === 1) {
+        setInput(matches[0]);
+      } else if (matches.length > 1) {
+        // Like a real shell: fill in what the matches share, then list them.
+        setInput(commonPrefix(matches));
+        setHistory((h) => [
+          ...h,
+          { id: blockId++, prompt: input, content: <div className="text-mist">{matches.join("  ")}</div> },
+        ]);
+      }
     } else if (e.key === "l" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       setHistory([]);
@@ -128,21 +144,6 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
 
   return (
     <div className="relative h-full w-full">
-      {onClose && (
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute -top-8 left-[14px] transition-opacity duration-500 ${
-            showCloseHint ? "opacity-60" : "opacity-0"
-          }`}
-        >
-          <div className="animate-bob flex flex-row items-center gap-1.5">
-            <ChevronDownIcon className="h-4 w-4 shrink-0 text-signal" />
-            <span className="whitespace-nowrap font-mono text-[11px] text-paper">
-              Close for Base View
-            </span>
-          </div>
-        </div>
-      )}
       <div
         className="theme-terminal-dark flex h-full w-full cursor-text flex-col overflow-hidden rounded-lg border border-line bg-panel shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_60px_-24px_rgba(0,0,0,0.75)]"
         onClick={() => inputRef.current?.focus()}
@@ -157,10 +158,9 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
                     e.stopPropagation();
                     onClose();
                   }}
-                  onMouseEnter={() => setShowCloseHint(false)}
                   aria-label="Close terminal"
                   title="Close"
-                  className="group/close relative flex h-2.5 w-2.5 cursor-pointer items-center justify-center rounded-full bg-mist/30 transition-colors hover:bg-red-400"
+                  className="group/close relative flex h-2.5 w-2.5 cursor-pointer after:absolute after:-inset-[7px] after:content-[''] items-center justify-center rounded-full bg-mist/30 transition-colors hover:bg-red-400"
                 >
                   <span className="text-[8px] leading-none text-ink opacity-0 transition-opacity group-hover/close:opacity-100">
                     ×
@@ -172,13 +172,9 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
               <span className="h-2.5 w-2.5 rounded-full bg-amber/50" aria-hidden />
               <span className="h-2.5 w-2.5 rounded-full bg-signal/50" aria-hidden />
             </div>
-            <span className="font-mono text-[11px] text-mist sm:text-xs">aidan@portfolio — zsh</span>
+            <span className="font-mono text-xs text-mist">aidan@portfolio — zsh</span>
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-mist sm:text-xs">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${profile.available ? "animate-pulse-soft bg-signal" : "bg-mist"}`}
-            />
-            <span className="hidden sm:inline">{profile.available ? "available" : "unavailable"}</span>
+          <div className="flex items-center gap-2 font-mono text-xs text-mist">
             <span className="tabular-nums" suppressHydrationWarning>
               {clock ?? "--:--:--"}
             </span>
@@ -189,17 +185,20 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
           ref={outputRef}
           className="min-h-0 flex-1 overflow-y-auto px-3 py-3 font-mono text-[12px] leading-relaxed sm:px-4 sm:py-4 sm:text-sm"
         >
-          {history.map((block) => (
-            <div key={block.id} className="rise-in mb-3 last:mb-0">
-              {block.prompt !== null && (
-                <div className="flex gap-2">
-                  <span className="shrink-0 text-signal">$</span>
-                  <span className="text-paper">{block.prompt}</span>
-                </div>
-              )}
-              {block.content && <div className={block.prompt !== null ? "mt-1 pl-4" : ""}>{block.content}</div>}
-            </div>
-          ))}
+          {/* role="log" announces each new command's output to screen readers. */}
+          <div role="log" aria-label="Terminal output" className="mb-3 empty:mb-0">
+            {history.map((block) => (
+              <div key={block.id} className="rise-in mb-3 last:mb-0">
+                {block.prompt !== null && (
+                  <div className="flex gap-2">
+                    <span aria-hidden className="shrink-0 text-signal">$</span>
+                    <span className="text-paper">{block.prompt}</span>
+                  </div>
+                )}
+                {block.content && <div className={block.prompt !== null ? "mt-1 pl-4" : ""}>{block.content}</div>}
+              </div>
+            ))}
+          </div>
 
           <form
             onSubmit={(e) => {
@@ -226,7 +225,7 @@ export function Terminal({ onClose }: { onClose?: () => void }) {
         </div>
 
         <div
-          className={`shrink-0 overflow-hidden border-t border-line px-3 py-1 font-mono text-[10px] text-signal transition-[max-height,opacity] duration-300 sm:px-4 ${
+          className={`shrink-0 overflow-hidden border-t border-line px-3 py-1 font-mono text-[11px] text-signal transition-[max-height,opacity] duration-300 sm:px-4 ${
             copiedFlash ? "max-h-6 opacity-100" : "max-h-0 opacity-0"
           }`}
           aria-live="polite"

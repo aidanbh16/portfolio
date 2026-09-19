@@ -1,15 +1,40 @@
 @import "tailwindcss";
 
+/* Site palette: warm charcoal, cream text, one soft orange accent. Dark
+   only, on purpose. Orange is used for text and small marks only — never as
+   a filled block behind dark text. Token names are historical — --ink is
+   the page background and --paper is the text color — so every bg-ink /
+   text-paper utility follows the theme. */
 :root {
+  --ink: #161512;
+  --panel: #1b1a17;
+  --panel-2: #22201c;
+  --line: #34312b;
+  --mist: #a19a8d;
+  --paper: #ece7dc;
+  --signal: #e8875c;
+  --amber: #d9a441;
+  --add: #e8875c;
+  --add-bg: rgb(232 135 92 / 0.1);
+  --del: #ff9a91;
+  --del-bg: rgb(248 81 73 / 0.16);
+}
+
+/* The terminal window always keeps its own dark/teal look, whatever the
+   page theme around it. */
+.theme-terminal-dark {
   --ink: #0a0c10;
   --panel: #12151c;
   --panel-2: #171b24;
   --line: #232838;
-  --grid-line: #1a1e29;
   --mist: #8991a4;
   --paper: #e7eaf0;
   --signal: #6ee7d8;
   --amber: #f2a65a;
+  --add: #7fd99a;
+  --add-bg: rgb(46 160 67 / 0.16);
+  --del: #ff9a91;
+  --del-bg: rgb(248 81 73 / 0.16);
 }
 
 @theme inline {
@@ -21,19 +46,30 @@
   --color-paper: var(--paper);
   --color-signal: var(--signal);
   --color-amber: var(--amber);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-add: var(--add);
+  --color-add-bg: var(--add-bg);
+  --color-del: var(--del);
+  --color-del-bg: var(--del-bg);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--ink);
   color: var(--paper);
   font-family: var(--font-sans);
-  background-image:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 64px 64px;
-  background-position: center -1px;
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+p, li, blockquote {
+  text-wrap: pretty;
 }
 
 ::selection {
@@ -53,60 +89,13 @@ body {
   outline: none;
 }
 
-/* Both the Base View page and the chrome around the Dev View terminal run
-   this white/blue palette. Every bg-ink / text-paper / etc. utility below
-   this scope picks these values up automatically since Tailwind's color
-   utilities read the same custom properties. */
-.theme-light {
-  --ink: #f5f8fc;
-  --panel: #ffffff;
-  --panel-2: #eef2f8;
-  --line: #dbe3ee;
-  --mist: #5b6b82;
-  --paper: #0f1a2b;
-  --signal: #1d4ed8;
-  --amber: #b45309;
-}
-
-/* The terminal window itself always keeps the original dark/teal look,
-   re-declaring the defaults so it's unaffected by a light .theme-light
-   ancestor. */
-.theme-terminal-dark {
-  --ink: #0a0c10;
-  --panel: #12151c;
-  --panel-2: #171b24;
-  --line: #232838;
-  --mist: #8991a4;
-  --paper: #e7eaf0;
-  --signal: #6ee7d8;
-  --amber: #f2a65a;
-}
-
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(4px); }
-}
-
-.animate-pulse-soft {
-  animation: pulse-soft 1.8s ease-in-out infinite;
-}
-
 .rise-in {
   animation: rise-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-.animate-bob {
-  animation: bob 1.3s ease-in-out infinite;
 }
 
 ::view-transition-old(root),
@@ -115,9 +104,21 @@ body {
   animation-timing-function: ease-out;
 }
 
+/* Reveal starts sections hidden until they scroll into view. Never leave
+   them hidden when that can't happen: printing here, and JS being
+   unavailable via the <noscript> style in layout.tsx. */
+@media print {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    translate: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }

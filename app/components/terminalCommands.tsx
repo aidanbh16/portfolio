@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import type { Experience, Project } from "../data";
-import { about, experience, links, profile, projects, skills } from "../data";
+import { about, experience, links, profile, projects, recommendations, skills } from "../data";
+import { STATUS_LABEL, STATUS_STYLE } from "./projectStatus";
 
-export type CommandResult = { kind: "node"; node: ReactNode } | { kind: "clear" };
+export type CommandResult = { kind: "node"; node: ReactNode } | { kind: "clear" } | { kind: "exit" };
 
 export const COMMAND_NAMES = [
   "help",
@@ -12,26 +13,17 @@ export const COMMAND_NAMES = [
   "projects",
   "skills",
   "contact",
+  "references",
+  "open",
   "resume",
   "email",
   "whoami",
   "date",
   "ls",
   "clear",
+  "exit",
   "sudo",
 ];
-
-const STATUS_STYLE: Record<Project["status"], string> = {
-  live: "text-signal border-signal/40",
-  "in-progress": "text-amber border-amber/40",
-  archived: "text-mist border-line",
-};
-
-const STATUS_LABEL: Record<Project["status"], string> = {
-  live: "live",
-  "in-progress": "in progress",
-  archived: "archived",
-};
 
 function Plain({ lines }: { lines: string[] }) {
   return (
@@ -59,7 +51,7 @@ function Tags({ items }: { items: string[] }) {
   return (
     <div className="mt-1.5 flex flex-wrap gap-1.5">
       {items.map((t) => (
-        <span key={t} className="rounded-full border border-line px-2 py-0.5 font-mono text-[10px] text-mist">
+        <span key={t} className="rounded-full border border-line px-2 py-0.5 font-mono text-[11px] text-mist">
           {t}
         </span>
       ))}
@@ -79,8 +71,17 @@ function ExperienceEntry({ role }: { role: Experience }) {
         <span className="font-medium text-paper">
           {role.role} <span className="font-normal text-mist">· {role.org}</span>
         </span>
-        <span className="shrink-0 font-mono text-[11px] text-mist">{role.period}</span>
+        <span className="shrink-0 font-mono text-xs text-mist">{role.period}</span>
       </div>
+      {role.impact && (
+        <div className="mt-1">
+          {role.impact.map((line) => (
+            <div key={line} className="text-signal">
+              → {line}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mt-1.5 space-y-1">
         {role.bullets.map((b, i) => (
           <Bullet key={i}>{b}</Bullet>
@@ -97,11 +98,11 @@ function ProjectEntry({ project }: { project: Project }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium text-paper">{project.name}</span>
         <span
-          className={`rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${STATUS_STYLE[project.status]}`}
+          className={`rounded-full border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide ${STATUS_STYLE[project.status]}`}
         >
           {STATUS_LABEL[project.status]}
         </span>
-        <span className="font-mono text-[11px] text-mist">{project.period}</span>
+        <span className="font-mono text-xs text-mist">{project.period}</span>
       </div>
       <div className="mt-1.5 space-y-1">
         {project.bullets.map((b, i) => (
@@ -143,7 +144,7 @@ function educationNode(): ReactNode {
     <div className="space-y-2.5">
       <div className="text-paper">{about.education}</div>
       <div>
-        <div className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-mist">coursework</div>
+        <div className="mb-1.5 font-mono text-[11px] uppercase tracking-widest text-mist">coursework</div>
         <Tags items={about.coursework} />
       </div>
     </div>
@@ -188,12 +189,12 @@ function skillsNode(term?: string): ReactNode {
     <div className="space-y-2">
       {groups.map((g, i) => (
         <div key={g.label} className="flex items-baseline gap-2">
-          <span className="w-20 shrink-0 font-mono text-[10px] uppercase tracking-widest text-mist">{g.label}</span>
+          <span className="w-20 shrink-0 font-mono text-[11px] uppercase tracking-widest text-mist">{g.label}</span>
           <div className="flex flex-wrap gap-1.5">
             {g.items.map((item) => (
               <span
                 key={item}
-                className={`rounded-full border px-2 py-0.5 font-mono text-[10px] text-paper ${
+                className={`rounded-full border px-2 py-0.5 font-mono text-[11px] text-paper ${
                   i % 2 === 0 ? "border-signal/40 bg-signal/10" : "border-amber/40 bg-amber/10"
                 }`}
               >
@@ -215,8 +216,11 @@ function helpNode(): ReactNode {
     ["projects", "things I've built"],
     ["skills", "tools & languages"],
     ["contact", "how to reach me"],
+    ["references", "what people I've worked with say"],
+    ["open <name>", "open a project, github, linkedin, or resume"],
     ["resume", "open my resume"],
     ["clear", "clear the terminal"],
+    ["exit", "back to the regular site"],
   ];
   return (
     <div>
@@ -265,6 +269,65 @@ function contactNode(copyEmail: () => void): ReactNode {
   );
 }
 
+function referencesNode(): ReactNode {
+  return (
+    <div className="space-y-4">
+      {recommendations.map((rec) => (
+        <div key={rec.name}>
+          <div className="text-paper">&ldquo;{rec.quote}&rdquo;</div>
+          <div className="mt-1 text-mist">
+            — {rec.name}, {rec.title}, {rec.org}
+          </div>
+          <a
+            href={rec.letterHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-pointer text-signal underline decoration-signal/30 underline-offset-2 transition-colors hover:decoration-signal"
+          >
+            full letter (pdf) ↗
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Everything `open` knows how to reach, keyed by the lowercase word you type.
+const OPEN_TARGETS: Record<string, string> = {
+  ...Object.fromEntries(
+    projects.filter((p) => p.href).map((p) => [p.name.toLowerCase().split(" ")[0], p.href as string]),
+  ),
+  ...Object.fromEntries(links.map((link) => [link.label.toLowerCase(), link.href])),
+  resume: "/resume.pdf",
+};
+
+function openNode(target: string | undefined): ReactNode {
+  const names = Object.keys(OPEN_TARGETS);
+  if (!target) {
+    return <Plain lines={["usage: open <name>", `try: ${names.join(", ")}`]} />;
+  }
+  const key = names.find((name) => name.startsWith(target.toLowerCase()));
+  if (!key) {
+    return <Plain lines={[`open: nothing called "${target}"`, `try: ${names.join(", ")}`]} />;
+  }
+  const href = OPEN_TARGETS[key];
+  if (typeof window !== "undefined") window.open(href, "_blank", "noopener,noreferrer");
+  return (
+    <span>
+      opening{" "}
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="cursor-pointer text-signal underline decoration-signal/30 underline-offset-2 transition-colors hover:decoration-signal"
+      >
+        {href.replace(/^https?:\/\//, "").replace(/^\//, "")}
+      </a>{" "}
+      ↗
+    </span>
+  );
+}
+
 function extractGrepTerm(pipes: string[]): string | undefined {
   for (const pipe of pipes) {
     const match = pipe.match(/^grep\s+(-i\s+)?"?([^"]+)"?$/i);
@@ -276,12 +339,13 @@ function extractGrepTerm(pipes: string[]): string | undefined {
 export function runCommand(raw: string, copyEmail: () => void): CommandResult {
   const segments = raw.split("|").map((s) => s.trim());
   const [base, ...pipes] = segments;
-  const [cmdRaw] = base.split(/\s+/).filter(Boolean);
+  const [cmdRaw, firstArg] = base.split(/\s+/).filter(Boolean);
   const cmd = (cmdRaw ?? "").toLowerCase();
   const term = extractGrepTerm(pipes);
 
   if (cmd === "") return { kind: "node", node: null };
   if (cmd === "clear") return { kind: "clear" };
+  if (cmd === "exit" || cmd === "logout") return { kind: "exit" };
 
   if (cmd === "sudo") {
     return {
@@ -343,6 +407,8 @@ export function runCommand(raw: string, copyEmail: () => void): CommandResult {
   }
 
   if (cmd === "contact") return { kind: "node", node: contactNode(copyEmail) };
+  if (cmd === "references" || cmd === "recommendations") return { kind: "node", node: referencesNode() };
+  if (cmd === "open") return { kind: "node", node: openNode(firstArg) };
 
   return {
     kind: "node",

@@ -1,313 +1,327 @@
 import type { ReactNode } from "react";
-import { about, experience, links, profile, projects, skills } from "../data";
-import type { Project } from "../data";
+import Image from "next/image";
+import { about, experience, links, profile, projects, recommendations, skills } from "../data";
 import { Reveal } from "./Reveal";
-import { GitHubIcon, LinkedInIcon, MailIcon, TerminalIcon } from "./icons";
+import { STATUS_LABEL, STATUS_STYLE } from "./projectStatus";
 
-const STATUS_STYLE: Record<Project["status"], string> = {
-  live: "text-signal border-signal/40",
-  "in-progress": "text-amber border-amber/40",
-  archived: "text-mist border-line",
-};
+// Roles and projects show this many bullets up front; the rest sit behind a "Show N more" toggle.
+const VISIBLE_BULLETS = 2;
 
-const STATUS_LABEL: Record<Project["status"], string> = {
-  live: "live",
-  "in-progress": "in progress",
-  archived: "archived",
-};
+const textLink =
+  "cursor-pointer underline decoration-mist/50 decoration-1 underline-offset-4 transition-colors hover:text-paper hover:decoration-signal";
 
-function SectionHeading({ children }: { children: string }) {
+const accentLink =
+  "cursor-pointer font-medium text-signal underline decoration-signal/40 underline-offset-4 transition-colors hover:decoration-signal";
+
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <h2 className="mb-6 font-mono text-xs uppercase tracking-widest text-mist sm:mb-8">{children}</h2>
+    <Reveal className="border-t border-line">
+      <section aria-labelledby={id} className="mx-auto max-w-4xl px-5 pt-14 pb-16 sm:px-8 md:pt-20 md:pb-24">
+        <h2 id={id} className="mb-8 text-2xl font-semibold tracking-tight text-paper">
+          {title}
+        </h2>
+        {children}
+      </section>
+    </Reveal>
   );
 }
 
-function Chip({ children }: { children: string }) {
+function BulletList({ bullets }: { bullets: string[] }) {
   return (
-    <span className="rounded-full border border-line bg-panel/60 px-3 py-1 text-sm text-paper/90">
-      {children}
-    </span>
+    <ul className="mt-4 max-w-[46rem] list-disc space-y-2 pl-5 text-mist marker:text-mist/50">
+      {bullets.map((b) => (
+        <li key={b} className="pl-1 leading-relaxed">
+          {b}
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function ContactIconBadge({ children }: { children: ReactNode }) {
+function CollapsibleBullets({ bullets }: { bullets: string[] }) {
+  if (bullets.length <= VISIBLE_BULLETS) return <BulletList bullets={bullets} />;
+  const hidden = bullets.length - VISIBLE_BULLETS;
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-ink text-mist transition-colors group-hover:border-signal/40 group-hover:text-signal">
-      {children}
-    </span>
+    <>
+      <BulletList bullets={bullets.slice(0, VISIBLE_BULLETS)} />
+      <details className="group">
+        <summary className="mt-3 inline-flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-signal underline-offset-4 hover:underline group-open:hidden [&::-webkit-details-marker]:hidden">
+          Show {hidden} more
+          <span aria-hidden>↓</span>
+        </summary>
+        <BulletList bullets={bullets.slice(VISIBLE_BULLETS)} />
+      </details>
+    </>
   );
 }
 
-function ContactArrow() {
+function StackLine({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  // Each separator stays glued to the item before it, so a wrapped line
+  // never starts with a stray "·".
   return (
-    <span
-      aria-hidden
-      className="shrink-0 text-mist transition-all group-hover:translate-x-0.5 group-hover:text-signal"
-    >
-      ↗
-    </span>
+    <p className="mt-4 font-mono text-xs leading-relaxed text-mist">
+      {items.map((item, i) => (
+        <span key={item} className="whitespace-nowrap">
+          {item}
+          {i < items.length - 1 && " · "}
+        </span>
+      ))}
+    </p>
   );
 }
 
 export function BaseView({ onOpenDevView }: { onOpenDevView?: () => void }) {
+  const currentRoles = experience.filter((role) => role.period.includes("Present"));
+
   return (
     <div className="w-full">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-ink/90 px-5 py-3.5 backdrop-blur-sm sm:px-8">
-        <div className="flex items-center gap-2">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${profile.available ? "animate-pulse-soft bg-signal" : "bg-mist"}`}
-          />
-          <span className="font-medium text-paper">{profile.name}</span>
-        </div>
-        <div className="flex items-center gap-2.5">
-          {onOpenDevView && (
-            <button
-              type="button"
-              onClick={onOpenDevView}
-              className="flex cursor-pointer items-center gap-1.5 rounded-full border border-line px-3.5 py-1.5 text-sm text-paper transition-all hover:-translate-y-0.5 hover:border-signal/50"
-            >
-              <TerminalIcon className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Dev View</span>
-            </button>
-          )}
-          <a
-            href="/resume.pdf"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cursor-pointer rounded-full border border-line px-3.5 py-1.5 text-sm text-paper transition-all hover:-translate-y-0.5 hover:border-signal/50"
-          >
-            Resume
-          </a>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-20 focus:rounded-md focus:bg-paper focus:px-3 focus:py-2 focus:text-sm focus:text-ink"
+      >
+        Skip to content
+      </a>
+
+      <header className="sticky top-0 z-10 border-b border-line bg-ink/90 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-3.5 sm:px-8">
+          <span className="font-semibold text-paper">{profile.name}</span>
+          <nav className="flex items-center gap-5 text-sm text-mist">
+            {onOpenDevView && (
+              <button type="button" onClick={onOpenDevView} className={`hidden md:inline ${textLink}`}>
+                Terminal
+              </button>
+            )}
+            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" className={textLink}>
+              Résumé
+            </a>
+          </nav>
         </div>
       </header>
 
-      <main>
-        <section className="mx-auto max-w-3xl px-5 py-16 sm:px-8 sm:py-24">
-          <span className="rise-in block font-mono text-xs uppercase tracking-widest text-signal">
-            {profile.role}
-          </span>
-          <h1
-            className="rise-in mt-3 text-4xl font-semibold tracking-tight text-paper sm:text-6xl"
-            style={{ animationDelay: "60ms" }}
-          >
-            {profile.name}
-          </h1>
-          <p
-            className="rise-in mt-5 max-w-xl text-lg leading-relaxed text-mist sm:text-xl"
-            style={{ animationDelay: "120ms" }}
-          >
-            {profile.pitch}
-          </p>
-          <div
-            className="rise-in mt-8 flex flex-wrap items-center gap-3"
-            style={{ animationDelay: "180ms" }}
-          >
-            <a
-              href={`mailto:${profile.email}`}
-              className="cursor-pointer rounded-full bg-paper px-5 py-2.5 text-sm font-medium text-ink transition-all hover:-translate-y-0.5 hover:opacity-90"
+      <main id="main">
+        <section className="mx-auto grid max-w-4xl gap-10 px-5 pt-16 pb-20 sm:px-8 md:grid-cols-[1fr_16rem] md:items-end md:gap-12 md:pt-24 md:pb-24">
+          <div>
+            <p className="rise-in text-sm text-mist">
+              {profile.role} · {profile.location}
+            </p>
+            <h1
+              className="rise-in mt-3 text-5xl font-semibold tracking-tight text-paper sm:text-6xl"
+              style={{ animationDelay: "60ms" }}
             >
-              Email me
-            </a>
-            <a
-              href="/resume.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cursor-pointer rounded-full border border-line px-5 py-2.5 text-sm text-paper transition-all hover:-translate-y-0.5 hover:border-signal/50"
+              {profile.name}
+            </h1>
+            <p
+              className="rise-in mt-5 max-w-[34rem] text-lg leading-relaxed text-mist sm:text-xl"
+              style={{ animationDelay: "120ms" }}
             >
-              View resume
-            </a>
-            {links.map((link) => (
+              {profile.pitch}
+            </p>
+            <div
+              className="rise-in mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm"
+              style={{ animationDelay: "180ms" }}
+            >
               <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="cursor-pointer text-sm text-mist underline decoration-line underline-offset-4 transition-colors hover:text-paper hover:decoration-signal"
+                href={`mailto:${profile.email}`}
+                className="cursor-pointer rounded-md bg-paper px-4 py-2.5 font-medium text-ink transition-opacity hover:opacity-90 active:translate-y-px"
               >
-                {link.label}
+                Email me
               </a>
-            ))}
+              <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" className={`text-mist ${textLink}`}>
+                Résumé
+              </a>
+              {links.map((link) => (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-mist ${textLink}`}
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+            {onOpenDevView && (
+              <p className="rise-in mt-7 hidden text-sm text-mist md:block" style={{ animationDelay: "240ms" }}>
+                Rather use a terminal?{" "}
+                <button type="button" onClick={onOpenDevView} className={`font-medium text-paper ${textLink}`}>
+                  Open this site as one
+                </button>
+              </p>
+            )}
           </div>
+
+          <aside
+            aria-label="Currently"
+            className="rise-in border-l-2 border-signal/40 pl-5 text-sm"
+            style={{ animationDelay: "240ms" }}
+          >
+            <p className="font-medium text-paper">Currently</p>
+            <ul className="mt-2 space-y-2.5">
+              {currentRoles.map((role) => (
+                <li key={`${role.org}-${role.period}`}>
+                  <span className="block text-paper">{role.role}</span>
+                  <span className="block text-mist">{role.org}</span>
+                </li>
+              ))}
+              <li>
+                <span className="block text-paper">{about.studying}</span>
+                <span className="block text-mist">Graduating {about.graduating}</span>
+              </li>
+            </ul>
+            <p className="mt-4 flex items-center gap-2 font-medium text-signal">
+              <span aria-hidden className={`h-2 w-2 rounded-full ${profile.available ? "bg-signal" : "bg-mist"}`} />
+              {profile.available ? "Open to new roles" : "Not looking right now"}
+            </p>
+          </aside>
         </section>
 
-        <Reveal className="border-t border-line px-5 py-16 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-3xl">
-            <SectionHeading>About</SectionHeading>
-            <p className="max-w-2xl text-base leading-relaxed text-paper/90 sm:text-lg">{about.bio}</p>
-            <dl className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-lg border border-line bg-panel/60 p-4">
-                <dt className="font-mono text-[11px] uppercase tracking-widest text-mist">Education</dt>
-                <dd className="mt-1.5 text-sm text-paper">{about.education}</dd>
-              </div>
-              <div className="rounded-lg border border-line bg-panel/60 p-4">
-                <dt className="font-mono text-[11px] uppercase tracking-widest text-mist">Based in</dt>
-                <dd className="mt-1.5 text-sm text-paper">{profile.location}</dd>
-              </div>
-            </dl>
-          </div>
-        </Reveal>
+        <Section id="about" title="About">
+          <p className="max-w-[46rem] text-lg leading-relaxed text-paper/90">{about.bio}</p>
+          <p className="mt-6 max-w-[46rem] text-sm text-mist">
+            <span className="font-medium text-paper">Education:</span> {about.education}
+          </p>
+        </Section>
 
-        <Reveal className="border-t border-line px-5 py-16 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-3xl">
-            <SectionHeading>Experience</SectionHeading>
-            <div className="space-y-10">
-              {experience.map((role) => (
-                <div key={`${role.org}-${role.period}`} className="border-l border-line pl-5">
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <h3 className="font-medium text-paper">
-                      {role.role} <span className="text-mist">· {role.org}</span>
-                    </h3>
-                    <span className="font-mono text-xs text-mist">{role.period}</span>
-                  </div>
-                  <ul className="mt-3 space-y-1.5">
-                    {role.bullets.map((b, i) => (
-                      <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-mist sm:text-base">
-                        <span className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-mist/60" />
-                        <span>{b}</span>
+        <Section id="experience" title="Experience">
+          <div className="divide-y divide-line">
+            {experience.map((role) => (
+              <article key={`${role.org}-${role.period}`} className="py-10 first:pt-0 last:pb-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                  <h3 className="text-lg font-semibold text-paper">{role.role}</h3>
+                  <span className="font-mono text-xs whitespace-nowrap text-mist">{role.period}</span>
+                </div>
+                <p className="text-mist">{role.org}</p>
+                {role.impact && (
+                  <ul className="mt-4 max-w-[46rem] space-y-1 rounded-md bg-panel-2 px-4 py-3">
+                    {role.impact.map((line) => (
+                      <li key={line} className="flex gap-2.5 font-medium text-paper">
+                        <span aria-hidden className="text-signal">
+                          ↗
+                        </span>
+                        {line}
                       </li>
                     ))}
                   </ul>
-                  {role.stack.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {role.stack.map((tech) => (
-                        <Chip key={tech}>{tech}</Chip>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                )}
+                <CollapsibleBullets bullets={role.bullets} />
+                <StackLine items={role.stack} />
+              </article>
+            ))}
           </div>
-        </Reveal>
+        </Section>
 
-        <Reveal className="border-t border-line px-5 py-16 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-3xl">
-            <SectionHeading>Projects</SectionHeading>
-            <div className="space-y-6">
-              {projects.map((project) => (
-                <div
-                  key={project.name}
-                  className="rounded-lg border border-line bg-panel/60 p-5 transition-colors hover:border-line/80 sm:p-6"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-medium text-paper">{project.name}</h3>
+        <Section id="recommendations" title="Recommendations">
+          <div className="grid gap-6 md:grid-cols-2">
+            {recommendations.map((rec) => (
+              <figure key={rec.name} className="flex flex-col rounded-md border border-line p-6">
+                <blockquote className="flex-1 text-lg leading-relaxed text-paper">&ldquo;{rec.quote}&rdquo;</blockquote>
+                <figcaption className="mt-5 text-sm">
+                  <span className="block font-semibold text-paper">{rec.name}</span>
+                  <span className="block text-mist">
+                    {rec.title}, {rec.org}
+                  </span>
+                  <a
+                    href={rec.letterHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`mt-3 inline-block ${accentLink}`}
+                  >
+                    Read the full letter (PDF) ↗
+                  </a>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </Section>
+
+        <Section id="projects" title="Projects">
+          <div className="space-y-8">
+            {projects.map((project) => (
+              <article key={project.name} className="overflow-hidden rounded-md border border-line">
+                {project.image && (
+                  <Image
+                    src={project.image.src}
+                    alt={project.image.alt}
+                    width={project.image.width}
+                    height={project.image.height}
+                    sizes="(min-width: 896px) 832px, 100vw"
+                    className="h-auto w-full border-b border-line"
+                  />
+                )}
+                <div className="p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {project.logo && (
+                      <Image src={project.logo} alt="" width={24} height={24} className="h-6 w-6 rounded-full" />
+                    )}
+                    <h3 className="text-lg font-semibold text-paper">{project.name}</h3>
                     <span
-                      className={`rounded-full border px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wide ${STATUS_STYLE[project.status]}`}
+                      className={`rounded-full border px-2 text-xs leading-5 font-medium ${STATUS_STYLE[project.status]}`}
                     >
                       {STATUS_LABEL[project.status]}
                     </span>
                     <span className="font-mono text-xs text-mist">{project.period}</span>
                   </div>
-                  <ul className="mt-4 space-y-1.5">
-                    {project.bullets.map((b, i) => (
-                      <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-mist sm:text-base">
-                        <span className="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-mist/60" />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {project.stack.map((tech) => (
-                      <Chip key={tech}>{tech}</Chip>
-                    ))}
-                  </div>
+                  <CollapsibleBullets bullets={project.bullets} />
+                  <StackLine items={project.stack} />
                   {project.href && (
                     <a
                       href={project.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-4 inline-block cursor-pointer text-sm text-signal underline decoration-signal/30 underline-offset-4 transition-colors hover:decoration-signal"
+                      className={`mt-4 inline-block text-sm ${accentLink}`}
                     >
-                      Visit {project.name.toLowerCase()} ↗
+                      Visit {project.href.replace(/^https?:\/\//, "")} ↗
                     </a>
                   )}
                 </div>
-              ))}
-            </div>
+              </article>
+            ))}
           </div>
-        </Reveal>
+        </Section>
 
-        <Reveal className="border-t border-line px-5 py-16 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-3xl">
-            <SectionHeading>Skills</SectionHeading>
-            <div className="space-y-5">
-              {skills.map((group) => (
-                <div key={group.label}>
-                  <div className="mb-2 font-mono text-[11px] uppercase tracking-widest text-mist">
-                    {group.label}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {group.items.map((item) => (
-                      <Chip key={item}>{item}</Chip>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Reveal>
-
-        <Reveal className="border-t border-line px-5 py-16 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-3xl">
-            <SectionHeading>Contact</SectionHeading>
-            <div className="grid gap-8 sm:grid-cols-[1fr_1.15fr] sm:gap-10">
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${profile.available ? "animate-pulse-soft bg-signal" : "bg-mist"}`}
-                  />
-                  <span className="font-mono text-xs uppercase tracking-widest text-mist">
-                    {profile.available ? "Available for new roles" : "Not currently available"}
-                  </span>
-                </div>
-                <p className="max-w-sm text-base leading-relaxed text-paper/90 sm:text-lg">
-                  Open to new roles and interesting problems — the fastest way to reach me is
-                  email.
-                </p>
+        <Section id="skills" title="Skills">
+          <dl className="max-w-[46rem] space-y-4">
+            {skills.map((group) => (
+              <div key={group.label} className="sm:flex sm:gap-6">
+                <dt className="text-sm font-medium text-paper capitalize sm:w-28 sm:shrink-0 sm:pt-0.5">
+                  {group.label}
+                </dt>
+                <dd className="leading-relaxed text-mist">{group.items.join(", ")}</dd>
               </div>
+            ))}
+          </dl>
+        </Section>
 
-              <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-panel">
-                <a
-                  href={`mailto:${profile.email}`}
-                  className="group flex cursor-pointer items-center gap-4 px-5 py-4 transition-colors hover:bg-panel-2 sm:px-6"
-                >
-                  <ContactIconBadge>
-                    <MailIcon />
-                  </ContactIconBadge>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-paper">Email</span>
-                    <span className="block truncate text-sm text-mist">{profile.email}</span>
-                  </span>
-                  <ContactArrow />
-                </a>
-                {links.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex cursor-pointer items-center gap-4 px-5 py-4 transition-colors hover:bg-panel-2 sm:px-6"
-                  >
-                    <ContactIconBadge>
-                      {link.label === "GitHub" ? <GitHubIcon /> : <LinkedInIcon />}
-                    </ContactIconBadge>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-paper">{link.label}</span>
-                      <span className="block truncate text-sm text-mist">
-                        {link.href.replace(/^https?:\/\//, "")}
-                      </span>
-                    </span>
-                    <ContactArrow />
-                  </a>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
+        <Section id="contact" title="Contact">
+          <p className="text-mist">The fastest way to reach me is email.</p>
+          <a
+            href={`mailto:${profile.email}`}
+            className="mt-2 inline-block text-2xl font-semibold text-signal underline decoration-signal/40 decoration-1 underline-offset-[6px] transition-colors hover:decoration-signal sm:text-3xl"
+          >
+            {profile.email}
+          </a>
+          <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-mist">
+            {links.map((link) => (
+              <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer" className={textLink}>
+                {link.label} ↗
+              </a>
+            ))}
+            <a href="/resume.pdf" target="_blank" rel="noopener noreferrer" className={textLink}>
+              Résumé (PDF) ↗
+            </a>
+          </p>
+        </Section>
       </main>
 
-      <footer className="border-t border-line px-5 py-8 text-center font-mono text-xs text-mist sm:px-8">
-        {profile.name} · {profile.location}
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-4xl flex-wrap justify-between gap-2 px-5 py-8 text-xs text-mist sm:px-8">
+          <span>
+            {profile.name} · {profile.location}
+          </span>
+          <span>Built with Next.js</span>
+        </div>
       </footer>
     </div>
   );

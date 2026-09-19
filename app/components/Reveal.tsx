@@ -26,7 +26,7 @@ export function Reveal({ children, className = "" }: { children: ReactNode; clas
   return (
     <div
       ref={ref}
-      className={`${className} transition-all duration-700 ease-out ${
+      className={`reveal ${className} transition-all duration-700 ease-out ${
         visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
       }`}
     >

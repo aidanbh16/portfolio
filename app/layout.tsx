@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { profile, siteUrl } from "./data";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 const title = "Aidan Holton — Software Engineer";
@@ -17,18 +19,18 @@ const description =
   "Full-stack developer with hands-on experience in computer vision and applied ML. Browse an interactive terminal or a standard portfolio.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://aidanholton.dev"),
+  metadataBase: new URL(siteUrl),
   title,
   description,
   openGraph: {
     title,
     description,
-    url: "https://aidanholton.dev",
-    siteName: title,
+    url: siteUrl,
+    siteName: profile.name,
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title,
     description,
   },
@@ -38,9 +40,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <noscript>
+          <style>{".reveal{opacity:1!important;transform:none!important;translate:none!important}"}</style>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }
